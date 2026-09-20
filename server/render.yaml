@@ -20,17 +20,14 @@ services:
       - key: CRON_SECRET
         generateValue: true
       - key: SCRAPE_CONCURRENCY
-        value: 1
-      - key: SCRAPE_MAX_ATTEMPTS
         value: 2
+      - key: SCRAPE_MAX_ATTEMPTS
+        value: 3
       - key: NAV_TIMEOUT_MS
-        value: 25000
+        value: 15000
       - key: CYCLE_BUDGET_MS
         value: 90000
       - key: CLIENT_ORIGIN
         sync: false
       - key: HEADED
         value: false
-      # Disable Chromium sandbox — required in Render's container environment
-      - key: PLAYWRIGHT_CHROMIUM_NO_SANDBOX
-        value: true

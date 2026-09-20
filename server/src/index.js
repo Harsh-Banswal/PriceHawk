@@ -137,10 +137,6 @@ const server = app.listen(listenPort, async () => {
   if (!isTestEnv) {
     const { startAutoScraper } = await import('./scheduler/autoScraper.js');
     startAutoScraper(8000); // initial check after 8s, then every 3 minutes
-
-    // Pre-warm Chromium so the first scrape request doesn't pay browser cold-start (~1-2s)
-    const { getBrowser } = await import('./scraper/browser.js');
-    getBrowser().catch(() => {}); // fire-and-forget; idle timer will close it if unused
   }
 });
 

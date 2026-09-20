@@ -41,7 +41,7 @@ export class PriceUnstableError extends Error {
  * @throws {PriceUnstableError} If price does not stabilize within timeoutMs
  */
 export async function waitForStablePrice(page, options = {}) {
-  const pollIntervalMs = options.pollIntervalMs || 60;
+  const pollIntervalMs = options.pollIntervalMs || 80;
   const timeoutMs = options.timeoutMs ?? options.stabilityTimeoutMs ?? 6000;
   const minConsecutiveMatches = options.minConsecutiveMatches || 2; // Requires 3 consecutive identical reads
   const startTime = Date.now();
@@ -102,7 +102,7 @@ export async function waitForStablePrice(page, options = {}) {
         previousTuple = null;
       }
       // Check for in-page failure state (e.g. challenge_failed, upstream 500, 503)
-      if (currentPrice === null && elapsed > 500) {
+      if (currentPrice === null && elapsed > 800) {
         const errorState = await page
           .evaluate(() => {
             const substatus = document.querySelector('.price-substatus')?.innerText?.trim();

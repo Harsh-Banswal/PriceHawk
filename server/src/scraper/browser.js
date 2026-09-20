@@ -51,13 +51,12 @@ function resetIdleTimer() {
     idleCloseTimer = null;
   }
   if (activeContexts === 0 && sharedBrowser && sharedBrowser.isConnected()) {
-    // Keep browser warm for 5 minutes between scrapes — eliminates repeat cold-start overhead.
-    // Render containers stay alive; this avoids paying 1-2s Chromium launch on every request.
+    // Automatically close browser after 30s of total inactivity to free Render container memory
     idleCloseTimer = setTimeout(async () => {
       if (activeContexts === 0) {
         await closeBrowser().catch(() => {});
       }
-    }, 5 * 60 * 1000);
+    }, 30000);
     // Don't keep Node process alive just for the idle timer
     if (idleCloseTimer.unref) {
       idleCloseTimer.unref();
@@ -109,33 +108,16 @@ export async function getBrowser() {
       headless: isHeadless,
     });
 
-    // Base args — safe everywhere (local + cloud)
-    const baseArgs = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-      '--mute-audio',
-    ];
-
-    // Cloud-only args: Render sets RENDER=true automatically.
-    // --single-process collapses renderer into the main process — saves ~100MB RAM but
-    // disables Chrome's internal parallelism, which makes it SLOWER on a local machine.
-    const cloudArgs = process.env.RENDER === 'true'
-      ? [
-          '--single-process',
-          '--disable-extensions',
-          '--disable-background-networking',
-          '--disable-default-apps',
-        ]
-      : [];
-
     sharedBrowser = await chromium.launch({
       headless: isHeadless,
-      args: [...baseArgs, ...cloudArgs],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+      ],
     });
   }
   return sharedBrowser;

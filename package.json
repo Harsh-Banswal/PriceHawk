@@ -1,0 +1,28 @@
+{
+  "name": "price-tracker-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "E-commerce price tracking monorepo with server and client",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "start:server": "npm --workspace=server run start",
+    "dev:server": "npm --workspace=server run dev",
+    "test:server": "npm --workspace=server run test",
+    "dev:client": "npm --workspace=client run dev",
+    "build:client": "npm --workspace=client run build",
+    "scrape:headed": "npm --workspace=server run scrape:headed",
+    "scrape:headed:slow": "npm --workspace=server run scrape:headed:slow",
+    "scrape:headed:error": "npm --workspace=server run scrape:headed:error"
+  },
+  "keywords": [
+    "price-tracker",
+    "playwright",
+    "supabase",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC"
+}

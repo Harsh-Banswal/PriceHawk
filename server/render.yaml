@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: price-tracker-server
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npx playwright install --with-deps chromium
+    startCommand: node src/index.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: STORE_BASE_URL
+        value: https://demo.inelabteamdev.com
+      - key: CRON_SECRET
+        generateValue: true
+      - key: SCRAPE_CONCURRENCY
+        value: 2
+      - key: SCRAPE_MAX_ATTEMPTS
+        value: 3
+      - key: NAV_TIMEOUT_MS
+        value: 15000
+      - key: CYCLE_BUDGET_MS
+        value: 90000
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: HEADED
+        value: false

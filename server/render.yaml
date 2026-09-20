@@ -31,3 +31,12 @@ services:
         sync: false
       - key: HEADED
         value: false
+      # Browserless.io: set this to use a remote Chromium instead of a local one.
+      # Get your token at https://browserless.io/account
+      # When set, local Chromium is NOT installed or used on Render.
+      - key: BROWSERLESS_TOKEN
+        sync: false
+      # Optional: override the Browserless region endpoint
+      # Defaults to US West (production-sfo). Use production-lon for Europe.
+      - key: BROWSERLESS_ENDPOINT
+        sync: false

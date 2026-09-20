@@ -8,6 +8,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "build": "npx playwright install chromium",
     "start": "node src/index.js",
     "dev": "node --watch --watch-path=.env --watch-path=src src/index.js",
     "test": "node --test tests/**/*.test.js",

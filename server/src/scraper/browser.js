@@ -109,22 +109,33 @@ export async function getBrowser() {
       headless: isHeadless,
     });
 
+    // Base args — safe everywhere (local + cloud)
+    const baseArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu',
+      '--mute-audio',
+    ];
+
+    // Cloud-only args: Render sets RENDER=true automatically.
+    // --single-process collapses renderer into the main process — saves ~100MB RAM but
+    // disables Chrome's internal parallelism, which makes it SLOWER on a local machine.
+    const cloudArgs = process.env.RENDER === 'true'
+      ? [
+          '--single-process',
+          '--disable-extensions',
+          '--disable-background-networking',
+          '--disable-default-apps',
+        ]
+      : [];
+
     sharedBrowser = await chromium.launch({
       headless: isHeadless,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',       // saves ~100MB RAM on Render free tier; eliminates zygote/renderer IPC
-        '--disable-gpu',           // no GPU in cloud — avoids spawning GPU process
-        '--disable-extensions',
-        '--disable-background-networking',
-        '--disable-default-apps',
-        '--mute-audio',
-      ],
+      args: [...baseArgs, ...cloudArgs],
     });
   }
   return sharedBrowser;

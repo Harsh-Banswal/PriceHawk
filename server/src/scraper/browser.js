@@ -51,14 +51,12 @@ function resetIdleTimer() {
     idleCloseTimer = null;
   }
   if (activeContexts === 0 && sharedBrowser && sharedBrowser.isConnected()) {
-    // Browserless free tier charges by connected minutes — close quickly after use.
-    // Local Chromium: close after 30s to free memory.
-    const idleMs = process.env.BROWSERLESS_TOKEN ? 10000 : 30000;
+    // Automatically close browser after 30s of total inactivity to free Render container memory
     idleCloseTimer = setTimeout(async () => {
       if (activeContexts === 0) {
         await closeBrowser().catch(() => {});
       }
-    }, idleMs);
+    }, 30000);
     // Don't keep Node process alive just for the idle timer
     if (idleCloseTimer.unref) {
       idleCloseTimer.unref();
@@ -105,37 +103,22 @@ export async function getBrowser() {
   }
 
   if (!sharedBrowser || !sharedBrowser.isConnected()) {
-    const browserlessToken = process.env.BROWSERLESS_TOKEN;
+    sharedBrowserIsHeadless = isHeadless;
+    logger.info('Launching shared Chromium instance for scrape cycle...', {
+      headless: isHeadless,
+    });
 
-    if (browserlessToken) {
-      // ── Browserless.io mode ──────────────────────────────────────────────────
-      // Connect to a remote Chromium instance managed by Browserless.
-      // No local Chromium installation needed on Render.
-      // Uses CDP (Chrome DevTools Protocol) over WebSocket — Playwright API is identical.
-      const endpoint = process.env.BROWSERLESS_ENDPOINT ||
-        `wss://production-sfo.browserless.io?token=${browserlessToken}`;
-      logger.info('Connecting to Browserless.io remote browser...', { endpoint: endpoint.replace(browserlessToken, '***') });
-      sharedBrowserIsHeadless = true; // always headless on Browserless
-      sharedBrowser = await chromium.connectOverCDP(endpoint);
-      logger.info('Connected to Browserless.io successfully.');
-    } else {
-      // ── Local Chromium mode (default / local dev) ────────────────────────────
-      sharedBrowserIsHeadless = isHeadless;
-      logger.info('Launching shared Chromium instance for scrape cycle...', {
-        headless: isHeadless,
-      });
-      sharedBrowser = await chromium.launch({
-        headless: isHeadless,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-        ],
-      });
-    }
+    sharedBrowser = await chromium.launch({
+      headless: isHeadless,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+      ],
+    });
   }
   return sharedBrowser;
 }

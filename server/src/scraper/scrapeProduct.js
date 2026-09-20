@@ -66,13 +66,12 @@ export async function navigateAndScrape(page, productUrl, options = {}) {
       waitUntil: 'domcontentloaded',
       timeout: navTimeout,
     });
-    // Optionally wait briefly for price block element if remaining navigation budget allows
     const remainingForBlock = Math.max(0, navTimeout - (Date.now() - attemptStartTime));
     if (remainingForBlock > 100) {
       await page
         .locator('.price-block')
         .first()
-        .waitFor({ state: 'attached', timeout: Math.min(2000, remainingForBlock) })
+        .waitFor({ state: 'attached', timeout: Math.min(1000, remainingForBlock) })
         .catch(() => {});
     }
   } catch (err) {
@@ -119,16 +118,11 @@ export async function navigateAndScrape(page, productUrl, options = {}) {
     const isBlockVisible = await priceBlock.isVisible({ timeout: Math.min(500, remainingBudgetMs) }).catch(() => false);
 
     if (isBlockVisible) {
-      // 2a. Dismiss cookie consent banner if present (click Accept cookies)
-      for (let c = 1; c <= 3; c++) {
-        const acceptBtn = page.locator('button[aria-label="Accept cookies"]').first();
-        const isVisible = await acceptBtn.isVisible({ timeout: 200 }).catch(() => false);
-        if (isVisible) {
-          await acceptBtn.click({ timeout: 600 }).catch(() => {});
-          await page.waitForTimeout(100);
-        } else {
-          break;
-        }
+      // 2a. Dismiss cookie consent banner if present (one attempt - initScript already nukes the overlay)
+      const acceptBtn = page.locator('button[aria-label="Accept cookies"]').first();
+      const isAcceptVisible = await acceptBtn.isVisible({ timeout: 200 }).catch(() => false);
+      if (isAcceptVisible) {
+        await acceptBtn.click({ timeout: 600 }).catch(() => {});
       }
 
       // Ensure any remaining overlay elements are purged from DOM
@@ -142,20 +136,15 @@ export async function navigateAndScrape(page, productUrl, options = {}) {
       const box = await priceBlock.boundingBox();
 
       if (box) {
-        // Humanized mouse movement satisfying Ar({minMoves:8, minDwellMs:600})
-        const startX = box.x + 30;
-        const startY = box.y + 25;
+        // Minimal mouse move to satisfy site's hover requirement (no humanization delay needed on headless cloud)
+        const startX = box.x + box.width / 2;
+        const startY = box.y + box.height / 2;
         await page.mouse.move(startX, startY);
-        for (let i = 1; i <= 9; i++) {
-          await page.waitForTimeout(30);
-          await page.mouse.move(startX + i * 12, startY + (i % 2) * 8);
-        }
-        await page.waitForTimeout(420); // 9 * 30ms + 420ms = 690ms >= minDwellMs:600
       }
 
       const revealBtn = page.locator('button[aria-label="Reveal price"]').first();
 
-      const MAX_CLICK_ATTEMPTS = 6;
+      const MAX_CLICK_ATTEMPTS = 3;
       for (let clickAttempt = 1; clickAttempt <= MAX_CLICK_ATTEMPTS; clickAttempt++) {
         const isIdle = await page
           .evaluate(() => {
@@ -176,12 +165,12 @@ export async function navigateAndScrape(page, productUrl, options = {}) {
           })
           .catch(() => {});
 
-        const isBtnVisible = await revealBtn.isVisible({ timeout: 500 }).catch(() => false);
+        const isBtnVisible = await revealBtn.isVisible({ timeout: 300 }).catch(() => false);
         const isBtnDisabled = await revealBtn.isDisabled().catch(() => true);
 
         if (isBtnVisible && !isBtnDisabled) {
           // Trusted click produced by Playwright
-          await revealBtn.click({ timeout: 2000 }).catch((clickErr) => {
+          await revealBtn.click({ timeout: 1500 }).catch((clickErr) => {
             logger.debug(`Reveal click attempt ${clickAttempt} failed: ${clickErr.message}`);
           });
         }
@@ -189,7 +178,7 @@ export async function navigateAndScrape(page, productUrl, options = {}) {
         if (options.onRetry) {
           logger.debug(`Reveal click attempt ${clickAttempt} — waiting for idle to clear...`);
         }
-        await page.waitForTimeout(700);
+        await page.waitForTimeout(200);
       }
     }
   } catch {
@@ -204,7 +193,7 @@ export async function navigateAndScrape(page, productUrl, options = {}) {
   try {
     extraction = await waitForStablePrice(page, {
       ...options,
-      pollIntervalMs: options.pollIntervalMs || 150,
+      pollIntervalMs: options.pollIntervalMs || 60,
       timeoutMs: finalStabilityTimeout,
       stabilityTimeoutMs: finalStabilityTimeout,
       minConsecutiveMatches: options.minConsecutiveMatches || 2,

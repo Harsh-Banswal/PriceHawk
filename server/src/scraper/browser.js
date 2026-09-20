@@ -51,12 +51,13 @@ function resetIdleTimer() {
     idleCloseTimer = null;
   }
   if (activeContexts === 0 && sharedBrowser && sharedBrowser.isConnected()) {
-    // Automatically close browser after 30s of total inactivity to free Render container memory
+    // Keep browser warm for 5 minutes between scrapes — eliminates repeat cold-start overhead.
+    // Render containers stay alive; this avoids paying 1-2s Chromium launch on every request.
     idleCloseTimer = setTimeout(async () => {
       if (activeContexts === 0) {
         await closeBrowser().catch(() => {});
       }
-    }, 30000);
+    }, 5 * 60 * 1000);
     // Don't keep Node process alive just for the idle timer
     if (idleCloseTimer.unref) {
       idleCloseTimer.unref();
@@ -117,6 +118,12 @@ export async function getBrowser() {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
+        '--single-process',       // saves ~100MB RAM on Render free tier; eliminates zygote/renderer IPC
+        '--disable-gpu',           // no GPU in cloud — avoids spawning GPU process
+        '--disable-extensions',
+        '--disable-background-networking',
+        '--disable-default-apps',
+        '--mute-audio',
       ],
     });
   }
